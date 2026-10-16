@@ -1,6 +1,6 @@
 # MindSprout — byggeplan for første mobilprototype
 
-Status: plan, ikke implementert. Arbeidsnavnet er foreløpig og ikke varemerkeklarert.
+Status: første prototype implementert under `mindsprout/`. Dette dokumentet er funksjonsspesifikasjonen; se `mindsprout/README.md` for aktuell testdekning og begrensninger. Arbeidsnavnet er foreløpig og ikke varemerkeklarert.
 
 ## 1. Beslutningen vi skal kunne ta
 
@@ -114,11 +114,13 @@ Hjelpefunksjonen «Vis igjen» kan brukes i fri øving. Oppgaven merkes da som �
 - Vi samler ikke inn testdata automatisk. Første brukerinnsikt hentes gjennom frivillig tilbakemelding.
 - En fremtidig personvernerklæring må også ta hensyn til valgt vertstjenestes logger. «Ingen analysebiblioteker» betyr ikke nødvendigvis at vertstjenesten behandler null data.
 
-## 8. Mobiltilgang — første avhengighet før videre bygging
+## 8. Mobiltilgang — avklart for den tidligere spillversjonen
 
 Målet er en vanlig HTTPS-adresse som kan åpnes på telefonen. Vi skal ikke igjen bruke interne filstier som om de var leveringslenker.
 
-Undersøkt i dette miljøet:
+Oppdatert status: Eieren har aktivert GitHub Pages fra `gh-pages` og bekreftet at den tidligere Block Meadow-versjonen fungerer på telefonen. Nettadressen er https://jesper-b-johannsen.github.io/test-prosjekt/. Den nye MindSprout-versjonen testes og publiseres separat; den trenger en ny fysisk mobilprøve.
+
+Tidligere undersøkelse i dette miljøet:
 
 - Prosjektet ligger på GitHub: `jesper-b-johannsen/test-prosjekt`.
 - Opplasting av filer via Git har fungert tidligere i samtalen.

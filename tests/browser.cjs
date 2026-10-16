@@ -1,0 +1,53 @@
+const {chromium}=require('playwright');
+const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'../mindsprout');
+(async()=>{
+const server=http.createServer((req,res)=>{const name=decodeURIComponent(new URL(req.url,'http://localhost').pathname);const p=path.resolve(root,'.'+(name==='/'?'/index.html':name));if(!p.startsWith(root+'/')){res.writeHead(403).end();return}try{res.setHeader('Content-Type',p.endsWith('.mjs')?'text/javascript':p.endsWith('.css')?'text/css':'text/html');res.end(fs.readFileSync(p))}catch{res.writeHead(404).end()}});await new Promise(r=>server.listen(8899,'127.0.0.1',r));
+const browser=await chromium.launch({executablePath:process.env.CHROMIUM_EXECUTABLE || (fs.existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined),headless:true,args:['--no-sandbox']});const errors=[];
+const page=await browser.newPage({viewport:{width:1280,height:960}});page.on('pageerror',e=>errors.push(e.message));
+await page.goto('http://127.0.0.1:8899/?test=1');await page.screenshot({path:path.join(require('node:os').tmpdir(),'mindsprout-home-desktop.png'),fullPage:true});
+assert.equal(await page.locator('h1').textContent(),'Litt lek.Litt rom til å vokse.');
+await page.locator('#free-block').click();assert.equal(await page.locator('.cell').count(),64);
+// Real mouse drag and reload persistence.
+await page.evaluate(()=>{const t=mindsproutTest,s=t.getState();s.freeBlock.pieces=[{shape:0,color:'#d39872'},{shape:0,color:'#8aa781'},null];t.setState(s)});
+let a=await page.locator('.piece-slot').first().boundingBox(),b=await page.locator('.cell').nth(18).boundingBox();await page.mouse.move(a.x+a.width/2,a.y+a.height/2);await page.mouse.down();await page.mouse.move(b.x+b.width/2,b.y+b.height/2,{steps:10});await page.mouse.up();await page.waitForTimeout(10);
+assert.equal(await page.evaluate(()=>mindsproutTest.getState().freeBlock.grid[2][2]),'#d39872');
+const before=await page.evaluate(()=>mindsproutTest.getState().freeBlock);await page.reload();await page.locator('#free-block').click();assert.deepEqual(await page.evaluate(()=>mindsproutTest.getState().freeBlock),before);
+// Keyboard placement, arrow navigation and tray refill.
+await page.locator('.piece-slot').nth(1).focus();await page.keyboard.press('Enter');await page.locator('.cell').nth(0).focus();await page.keyboard.press('ArrowRight');await page.keyboard.press('Enter');assert.ok(await page.evaluate(()=>mindsproutTest.getState().freeBlock.grid[0][1]));
+await page.locator('#back').click();await page.locator('#free-memory').click();await page.locator('#practice').click();await page.locator('#memory-action').click();await page.waitForTimeout(3001);
+let targets=await page.evaluate(()=>document.querySelectorAll('.memory-cell').length);assert.equal(targets,9);
+await page.locator('#back').click();assert.equal(await page.evaluate(()=>mindsproutTest.getState().freeMemory.round),0);
+// Six real answered memory tasks, varying grid size as level increases.
+await page.locator('#free-memory').click();
+for(let round=0;round<6;round++){
+ await page.locator('#memory-action').click();assert.equal(await page.evaluate(()=>mindsproutTest.getState().freeMemory.phase),'show');await page.waitForTimeout(3001);
+ const pattern=await page.evaluate(()=>mindsproutTest.getState().freeMemory.targets);
+ for(const i of pattern)await page.locator(`[data-memory="${i}"]`).click();
+ await page.locator('#memory-action').click();assert.equal(await page.evaluate(()=>mindsproutTest.getState().freeMemory.phase),'feedback');await page.locator('#memory-action').click();
+}
+assert.equal(await page.evaluate(()=>mindsproutTest.getRoute()),'memoryResult');assert.equal(await page.evaluate(()=>mindsproutTest.getState().freeMemory.correct),6);
+await page.locator('#result-home').click();await page.locator('#daily-start').click();
+// Play all 12 daily block placements using valid moves in the live UI state.
+for(let move=0;move<12;move++){
+ const choice=await page.evaluate(async()=>{const {fits}=await import('/engine.mjs');const s=mindsproutTest.getState().daily.block;for(let i=0;i<3;i++)for(let y=0;y<8;y++)for(let x=0;x<8;x++)if(fits(s,s.pieces[i],x,y))return {i,x,y};return null});
+ if(!choice)break;await page.locator('.piece-slot').nth(choice.i).click();await page.locator('.cell').nth(choice.y*8+choice.x).click();if(await page.evaluate(()=>mindsproutTest.getRoute())==='blockResult')break;
+}
+assert.equal(await page.evaluate(()=>mindsproutTest.getState().daily.block.ended),true);await page.locator('#result-next').click();await page.locator('#memory-start').click();
+for(let round=0;round<6;round++){await page.locator('#memory-action').click();await page.waitForTimeout(3001);const t=await page.evaluate(()=>mindsproutTest.getState().daily.memory.targets);for(const i of t)await page.locator(`[data-memory="${i}"]`).click();await page.locator('#memory-action').click();await page.locator('#memory-action').click()}
+await page.locator('#result-next').click();assert.equal(await page.evaluate(()=>mindsproutTest.getRoute()),'summary');assert.equal(await page.evaluate(()=>mindsproutTest.getState().plants.length),1);
+await page.reload();assert.equal(await page.evaluate(()=>mindsproutTest.getState().plants.length),1);await page.locator('#daily-start').click();assert.equal(await page.evaluate(()=>mindsproutTest.getState().plants.length),1);await page.locator('#done').click();
+// Mobile taps, emulated touch drag and small-screen geometry; not a physical-device test.
+for(const [width,height] of [[320,568],[390,667],[320,844],[390,844],[430,844]]){
+ const context=await browser.newContext({viewport:{width,height},isMobile:true,hasTouch:true,deviceScaleFactor:1});const mp=await context.newPage();mp.on('pageerror',e=>errors.push(e.message));await mp.goto('http://127.0.0.1:8899/?test=1');assert.ok(await mp.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));if(width===390)await mp.screenshot({path:path.join(require('node:os').tmpdir(),'mindsprout-home-mobile.png'),fullPage:true});await mp.locator('#free-block').tap();const geometry=await mp.evaluate(()=>({height:innerHeight,board:document.querySelector('#board').getBoundingClientRect().toJSON(),tray:document.querySelector('#tray').getBoundingClientRect().toJSON()}));console.log('Mobile',width,JSON.stringify(geometry));assert.ok(geometry.tray.bottom<=geometry.height, 'Tray must fit with board');
+ await mp.evaluate(()=>{const s=mindsproutTest.getState();s.freeBlock.pieces=[{shape:0,color:'#d39872'},{shape:0,color:'#8aa781'},null];mindsproutTest.setState(s)});await mp.locator('.piece-slot').first().tap();await mp.locator('.cell').first().tap();assert.equal(await mp.evaluate(()=>mindsproutTest.getState().freeBlock.moves),1);
+ const pb=await mp.locator('.piece-slot').nth(1).boundingBox(),cb=await mp.locator('.cell').nth(42).boundingBox();const cdp=await context.newCDPSession(mp),sx=pb.x+pb.width/2,sy=pb.y+pb.height/2,tx=cb.x+cb.width/2,ty=cb.y+cb.height/2+cb.height*1.3;await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:sx,y:sy}]});for(let i=1;i<=8;i++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:sx+(tx-sx)*i/8,y:sy+(ty-sy)*i/8}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await mp.waitForTimeout(50);assert.equal(await mp.evaluate(()=>mindsproutTest.getState().freeBlock.grid[5][2]),'#8aa781');if(width===390)await mp.screenshot({path:path.join(require('node:os').tmpdir(),'mindsprout-block-mobile.png'),fullPage:true});await context.close();
+}
+const edge=await browser.newContext({viewport:{width:390,height:844}});const ep=await edge.newPage();ep.on('pageerror',e=>errors.push(e.message));await ep.goto('http://127.0.0.1:8899/?test=1');await ep.locator('#free-memory').click();await ep.locator('#memory-start').click();await ep.locator('#memory-action').click();await ep.reload();await ep.locator('#free-memory').click();assert.equal(await ep.evaluate(()=>mindsproutTest.getState().freeMemory.phase),'ready');
+await ep.locator('#memory-action').click();await ep.waitForTimeout(3001);let t=await ep.evaluate(()=>mindsproutTest.getState().freeMemory.targets);await ep.locator(`[data-memory="${t[0]}"]`).click();await ep.reload();await ep.locator('#free-memory').click();assert.equal(await ep.evaluate(()=>mindsproutTest.getState().freeMemory.selected.length),1);for(const i of t.slice(1))await ep.locator(`[data-memory="${i}"]`).click();await ep.locator('#memory-action').click();assert.equal(await ep.evaluate(()=>mindsproutTest.getState().freeMemory.correct),1);await ep.locator('#memory-action').click();
+await ep.locator('#memory-action').click();await ep.waitForTimeout(3001);await ep.locator('#reveal-again').click();await ep.waitForTimeout(3001);t=await ep.evaluate(()=>mindsproutTest.getState().freeMemory.targets);for(const i of t)await ep.locator(`[data-memory="${i}"]`).click();await ep.locator('#memory-action').click();assert.equal(await ep.evaluate(()=>mindsproutTest.getState().freeMemory.correct),1);
+await ep.locator('#back').click();await ep.locator('#daily-start').click();await ep.locator('#skip').click();await ep.locator('#confirm').click();await ep.locator('#memory-start').click();await ep.locator('#skip').click();await ep.locator('#confirm').click();assert.equal(await ep.evaluate(()=>mindsproutTest.getRoute()),'summary');assert.equal(await ep.evaluate(()=>mindsproutTest.getState().plants.length),0);
+await ep.addInitScript(()=>localStorage.setItem('mindsprout-v1','{corrupt'));await ep.reload();assert.equal(await ep.locator('#storage-warning').isVisible(),true);await ep.locator('#free-block').click();assert.equal(await ep.locator('.cell').count(),64);await edge.close();
+const noStore=await browser.newContext();await noStore.addInitScript(()=>{Storage.prototype.setItem=function(){throw new Error('Storage unavailable')}});const np=await noStore.newPage();await np.goto('http://127.0.0.1:8899/?test=1');assert.equal(await np.locator('#storage-warning').isVisible(),true);await np.locator('#free-block').click();await np.locator('.piece-slot').first().click();await np.locator('.cell').first().click();assert.ok(await np.evaluate(()=>mindsproutTest.getState().freeBlock.score>0));await noStore.close();
+assert.deepEqual(errors,[]);console.log('PASS: mouse drag; keyboard; saved round; practice excluded; six memory rounds and adaptation; daily two-game flow and one reward; reload; mobile 320/390/430; emulated touch drag; interrupted reveal; assisted practice; skipped daily session; corrupted/unavailable storage; no JS errors.');await browser.close();server.close();
+})().catch(e=>{console.error(e);process.exit(1)});

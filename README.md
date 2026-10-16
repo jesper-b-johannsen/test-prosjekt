@@ -12,4 +12,6 @@ Pakk ut ZIP-filen og dobbeltklikk **Block-Meadow.html**. Ingen installasjon er n
 
 ## MindSprout — neste prototype
 
-[Les byggeplanen for MindSprout](docs/MINDSPROUT-PLAN.md). Planen beskriver to spill, dagsøkt, lokal lagring, mobiltilgang og krav til testing. MindSprout-versjonen er ikke bygget eller publisert ennå.
+[Les byggeplanen for MindSprout](docs/MINDSPROUT-PLAN.md). Planen beskriver to spill, dagsøkt, lokal lagring, mobiltilgang og krav til testing.
+
+[Åpne MindSprout på mobilen](https://jesper-b-johannsen.github.io/test-prosjekt/) · [Kildekode, testinstruksjoner og begrensninger](mindsprout/README.md).
