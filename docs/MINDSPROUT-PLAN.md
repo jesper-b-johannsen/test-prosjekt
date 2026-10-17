@@ -215,3 +215,12 @@ Betaling, reklame, abonnement, brukerkontoer, skysynkronisering, vennelister, gl
 ### Neste konkrete milepæl
 
 Avklart mobilhosting og deretter en spillbar, testet MindSprout-versjon med to spill som eieren faktisk kan åpne på telefonen. Ingen fast leveringstid eller effektgaranti gis før omfang, tilgang og testing er avklart.
+
+
+## Tillegg etter eierens prøve: læring og internasjonalisering
+
+Eieren har bekreftet at prototype 0.2 fungerer på telefonen og ønsker større utfordring, tydeligere forskningsgrunnlag og en quizdel. Prototype 0.3 legger til femspørsmålsquiz som valgfri aktivitet, forklaringer, fagkildelenker og en enkel repetisjonsplan. De to spillene og dagsøkten bevares.
+
+Arbeidsretning: MindSprout skal bli internasjonal med engelsk som hovedspråk og norsk som mulig språkvalg. Selve språkbyttet er utsatt etter eierens ønske. Nytt quizinnhold og quiztekster er skilt fra spillkoden og har både norsk og engelsk. Eksisterende apptekster er ennå ikke samlet i et fullstendig oversettelsessystem.
+
+Forskning og faktakilder må fortsatt kontrolleres gjennom en kildegjennomgang med fungerende oppslag. Prototypeintervallene eller poengsummene skal ikke fremstilles som bevis for økt intelligens. Se `mindsprout/README.md` for faktisk implementert repetisjonsmodell og testdekning.
